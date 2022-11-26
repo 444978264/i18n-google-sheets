@@ -14,6 +14,9 @@
     "@emotion/react": "^11.10.5",
     "@emotion/styled": "^11.10.5",
     "@mui/material": "^5.10.15",
+    "@plasmohq/storage": "^0.13.0",
+    "axios": "^1.2.0",
+    "lodash": "^4.17.21",
     "plasmo": "0.59.1",
     "react": "18.2.0",
     "react-dom": "18.2.0"
@@ -28,6 +31,16 @@
     "typescript": "4.9.3"
   },
   "manifest": {
+    "oauth2": {
+      "client_id": "16207941519-cji41ma8r3d2h8jh53sof3h02ec4bcce.apps.googleusercontent.com",
+      "scopes": [
+        "https://www.googleapis.com/auth/spreadsheets"
+      ]
+    },
+    "permissions": [
+      "identity",
+      "tabs"
+    ],
     "host_permissions": [
       "https://*/*"
     ]

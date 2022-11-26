@@ -1,9 +1,20 @@
+import { Button } from "@mui/material"
 import { createRoot } from "react-dom/client"
 
 const FontPicker = () => {
   return (
     <>
-      <h2>Font Picker</h2>
+      <Button
+        onClick={() => {
+          chrome.identity.getAuthToken({ interactive: true }, function (token) {
+            console.log(token, "getAuthToken")
+            // chrome.identity.removeCachedAuthToken({ token }, () => {
+            //   console.log(token, "removeCachedAuthToken")
+            // })
+          })
+        }}>
+        Font Picker
+      </Button>
       <p>HELLO WORLD</p>
     </>
   )
