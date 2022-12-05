@@ -1,14 +1,13 @@
 import { RouteObject, json, redirect } from "react-router-dom"
 
-import { googleSheetsManager } from "~lib/google-sheets"
+import { getAuthToken } from "~lib/utils"
 
 export const AuthLoader: (referrer?: string) => RouteObject["loader"] =
   (referrer) => async () => {
-    const token = await googleSheetsManager.storage.get("token")
-
-    if (!token) {
+    const [token, err] = await getAuthToken()
+    if (err) {
+      console.log(err, "error[auth]")
       throw redirect(`/login?referrer=${referrer}`)
     }
-
     return json({ token })
   }

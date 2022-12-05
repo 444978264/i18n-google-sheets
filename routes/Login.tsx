@@ -5,6 +5,11 @@ import { useNavigate, useSearchParams } from "react-router-dom"
 import { useStorage } from "@plasmohq/storage/hook"
 
 import { googleSheetsManager } from "~lib/google-sheets"
+import {
+  getAuthTokenInteractive,
+  refreshAuthToken,
+  removeCachedAuthToken
+} from "~lib/utils"
 
 export function Login() {
   const [urlParams] = useSearchParams()
@@ -14,23 +19,18 @@ export function Login() {
 
   useEffect(() => {
     chrome.identity.getProfileUserInfo((info) => {
-      console.log(info, "info")
+      console.log(info, "getProfileUserInfo")
     })
   }, [])
 
   useEffect(() => {
     if (token) {
       googleSheetsManager.useRawAccessToken(token, (resolve) => {
-        chrome.identity.removeCachedAuthToken(
-          {
-            token
-          },
-          () => {
-            remove()
-            resolve()
-            console.log("removeCachedAuthToken", "successful")
-          }
-        )
+        refreshAuthToken(token).then(() => {
+          remove()
+          resolve()
+          console.log("removeCachedAuthToken", "successful")
+        })
       })
       //   doc.loadInfo().then(() => {})
       //   doc.updateProperties({ title: "renamed doc" })
@@ -55,37 +55,22 @@ export function Login() {
       <Button
         variant="contained"
         onClick={() => {
-          chrome.identity.getAuthToken(
-            { interactive: true },
-            async function (token) {
-              if (chrome.runtime.lastError || !token) {
-                console.error(chrome.runtime.lastError)
-                return
-              }
-              setStoreValue(token).then(() => {
-                setToken(token)
-                const referrer = urlParams.get("referrer") || "/"
-                console.log(token, "token")
-                nav(referrer)
-              })
-            }
-          )
+          getAuthTokenInteractive().then(([token, err]) => {
+            if (err) return
+            setStoreValue(token).then(() => {
+              setToken(token)
+              const referrer = urlParams.get("referrer") || "/"
+              console.log(token, "token")
+              nav(referrer)
+            })
+          })
         }}>
         connect
       </Button>
       <Button
         variant="contained"
         onClick={() => {
-          token &&
-            chrome.identity.removeCachedAuthToken(
-              {
-                token
-              },
-              () => {
-                remove()
-                console.log("removeCachedAuthToken", "successful")
-              }
-            )
+          token && removeCachedAuthToken(token).then(remove)
         }}>
         disconnect
       </Button>

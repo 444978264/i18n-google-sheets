@@ -14,6 +14,12 @@ export function SheetsManagement() {
   console.log(sheetIds, "sheetIds")
 
   useEffect(() => {
+    chrome.identity.getProfileUserInfo((info) => {
+      console.log(info, "getProfileUserInfo")
+    })
+  }, [])
+
+  useEffect(() => {
     const sub = googleSheetsManager.sheets.subscribe(({ value }) => {
       setSheetIds(value)
     })
