@@ -1,11 +1,11 @@
 import { Button } from "@mui/material"
-import { useEffect } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 
 import { useStorage } from "@plasmohq/storage/hook"
 
 import { googleSheetsManager } from "~lib/google-sheets"
 import {
+  getAuthToken,
   getAuthTokenInteractive,
   refreshAuthToken,
   removeCachedAuthToken
@@ -16,34 +16,6 @@ export function Login() {
   const [token, setToken, { setRenderValue, setStoreValue, remove }] =
     useStorage<string>("token")
   const nav = useNavigate()
-
-  useEffect(() => {
-    chrome.identity.getProfileUserInfo((info) => {
-      console.log(info, "getProfileUserInfo")
-    })
-  }, [])
-
-  useEffect(() => {
-    if (token) {
-      googleSheetsManager.useRawAccessToken(token, (resolve) => {
-        refreshAuthToken(token).then(() => {
-          remove()
-          resolve()
-          console.log("removeCachedAuthToken", "successful")
-        })
-      })
-      //   doc.loadInfo().then(() => {})
-      //   doc.updateProperties({ title: "renamed doc" })
-    }
-    const listen = (account, signedIn) => {
-      console.log(account, signedIn, "account, signedIn")
-    }
-    chrome.identity.onSignInChanged.addListener(listen)
-
-    return () => {
-      chrome.identity.onSignInChanged.removeListener(listen)
-    }
-  }, [token])
 
   return (
     <div
@@ -57,6 +29,10 @@ export function Login() {
         onClick={() => {
           getAuthTokenInteractive().then(([token, err]) => {
             if (err) return
+            googleSheetsManager.useOAuth2({
+              getAuthToken,
+              refreshAuthToken
+            })
             setStoreValue(token).then(() => {
               setToken(token)
               const referrer = urlParams.get("referrer") || "/"

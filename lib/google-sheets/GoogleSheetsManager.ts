@@ -1,4 +1,4 @@
-import Axios, { AxiosInstance } from "axios"
+import Axios, { AxiosInstance, AxiosRequestConfig } from "axios"
 import _ from "lodash"
 import { Subject, filter, shareReplay } from "rxjs"
 
@@ -24,6 +24,10 @@ export const axios = Axios.create({
           })
         }
       })
+      console.log(
+        options ? options.slice(0, -1) : options,
+        "options ? options.slice(0, -1) : options"
+      )
       return options ? options.slice(0, -1) : options
     }
   }
@@ -42,10 +46,21 @@ type GoogleSheetsManagerUpdate = {
 
 type GoogleSheetsManagerModify = { type: "switch"; value: GoogleSpreadsheet }
 
+type IOAuth2 = {
+  getAuthToken(
+    details?: chrome.identity.TokenDetails
+  ): Promise<[string, undefined] | [undefined, chrome.runtime.LastError]>
+  refreshAuthToken(
+    token: string
+  ): Promise<[string, undefined] | [undefined, chrome.runtime.LastError]>
+}
+
 export class GoogleSheetsManager extends Subject<
   GoogleSheetsManagerUpdate | GoogleSheetsManagerModify
 > {
   static GOOGLE_SHEET_IDS = "GOOGLE_SHEET_IDS"
+  static AUTH_MODE = "AUTH_MODE"
+
   readonly sheets = this.pipe(
     filter((res) => res.type === "update"),
     shareReplay<GoogleSheetsManagerUpdate>({
@@ -70,11 +85,12 @@ export class GoogleSheetsManager extends Subject<
   }
   accessToken: string
   apiKey: string
-  oAuth2Client: any
+  oAuth2: IOAuth2
   public authMode: AUTH_MODES
 
   constructor(public axios: AxiosInstance) {
     super()
+
     this.storage
       .get<string[]>(GoogleSheetsManager.GOOGLE_SHEET_IDS)
       .then((ids = []) => {
@@ -87,6 +103,12 @@ export class GoogleSheetsManager extends Subject<
             value: [...this._sheetIds]
           })
         }
+      })
+
+    this.storage
+      .get<AUTH_MODES>(GoogleSheetsManager.AUTH_MODE)
+      .then((AUTH_MODE) => {
+        this.authMode = AUTH_MODE
       })
 
     this.axios.interceptors.request.use(this._setAxiosRequestAuth.bind(this))
@@ -108,18 +130,26 @@ export class GoogleSheetsManager extends Subject<
     return doc
   }
 
+  private _setAuthorization(config: AxiosRequestConfig, token: string) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+
+  private _ejectAuthorization(authorization: string) {
+    return authorization.replace("Bearer", "").trim()
+  }
+
   async _setAxiosRequestAuth(config) {
-    // TODO: check auth mode, if valid, renew if expired, etc
     if (this.authMode === AUTH_MODES.RAW_ACCESS_TOKEN) {
       if (!this.accessToken) throw new Error("Invalid access token")
-      config.headers.Authorization = `Bearer ${this.accessToken}`
+      this._setAuthorization(config, this.accessToken)
     } else if (this.authMode === AUTH_MODES.API_KEY) {
       if (!this.apiKey) throw new Error("Please set API key")
       config.params = config.params || {}
       config.params.key = this.apiKey
     } else if (this.authMode === AUTH_MODES.OAUTH) {
-      const credentials = await this.oAuth2Client.getAccessToken()
-      config.headers.Authorization = `Bearer ${credentials.token}`
+      const [token, error] = await this.oAuth2.getAuthToken()
+      if (error) return Promise.reject(error)
+      this._setAuthorization(config, token)
     } else {
       throw new Error(
         "You must initialize some kind of auth before making any requests"
@@ -133,6 +163,19 @@ export class GoogleSheetsManager extends Subject<
   }
   async _handleAxiosErrors(error) {
     // console.log(error);
+    if (this.authMode === AUTH_MODES.OAUTH) {
+      if (error.response && error.response.status === 401) {
+        const token = this._ejectAuthorization(
+          error.response.config.headers.Authorization
+        )
+        return this.oAuth2.refreshAuthToken(token).then(([token, err]) => {
+          return err
+            ? Promise.reject(err)
+            : this.axios.request(error.response.config)
+        })
+      }
+    }
+
     if (error.response && error.response.data) {
       // usually the error has a code and message, but occasionally not
       if (!error.response.data.error) throw error
@@ -152,32 +195,31 @@ export class GoogleSheetsManager extends Subject<
     throw error
   }
 
-  // AUTH RELATED FUNCTIONS ////////////////////////////////////////////////////////////////////////
+  private _setAuthMode(type: AUTH_MODES) {
+    this.authMode = type
+    this.storage.set(GoogleSheetsManager.AUTH_MODE, type)
+  }
+
+  getAuthMode() {
+    return this.authMode
+      ? Promise.resolve(this.authMode)
+      : this.storage.get<AUTH_MODES>(GoogleSheetsManager.AUTH_MODE)
+  }
+
   async useApiKey(key) {
-    this.authMode = AUTH_MODES.API_KEY
+    this._setAuthMode(AUTH_MODES.API_KEY)
     this.apiKey = key
   }
 
   // token must be created and managed (refreshed) elsewhere
-  async useRawAccessToken(token, refresh) {
-    this.authMode = AUTH_MODES.RAW_ACCESS_TOKEN
+  async useRawAccessToken(token) {
+    this._setAuthMode(AUTH_MODES.RAW_ACCESS_TOKEN)
     this.accessToken = token
-    if (refresh && typeof refresh === "function") {
-      this.axios.interceptors.response.use(undefined, (err) => {
-        if (err.response && err.response.status === 401) {
-          return new Promise((resolve, reject) => {
-            refresh(resolve, reject)
-          }).then(() => {
-            return this.axios.request(err.response.config)
-          })
-        }
-      })
-    }
   }
 
-  async useOAuth2Client(oAuth2Client) {
-    this.authMode = AUTH_MODES.OAUTH
-    this.oAuth2Client = oAuth2Client
+  async useOAuth2(oAuth2: IOAuth2) {
+    this._setAuthMode(AUTH_MODES.OAUTH)
+    this.oAuth2 = oAuth2
   }
 
   add(sheetId: string) {
