@@ -1,22 +1,18 @@
-import { Box, Button } from "@mui/material"
+import { Button } from "@mui/material"
 import { useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 
 import { useStorage } from "@plasmohq/storage/hook"
 
 import { googleSheetsManager } from "~lib/google-sheets"
 
 export function Login() {
+  const [urlParams] = useSearchParams()
   const [token, setToken, { setRenderValue, setStoreValue, remove }] =
     useStorage<string>("token")
   const nav = useNavigate()
 
   useEffect(() => {
-    // googleSheetsManager.add("1a_jrIy5sw3UoxgJBdP4MLNTcUDHpgwoj0-9BJV1dk0M")
-    // googleSheetsManager.add(
-    //   "1SHX6m9BV60RoCcuZV0dQ12zcqdw6w5RWwrqovFp6iB0-9BJV1dk0M"
-    // )
-
     chrome.identity.getProfileUserInfo((info) => {
       console.log(info, "info")
     })
@@ -56,7 +52,6 @@ export function Login() {
         flexDirection: "column",
         padding: 16
       }}>
-      <Box>token: {token}</Box>
       <Button
         variant="contained"
         onClick={() => {
@@ -69,7 +64,9 @@ export function Login() {
               }
               setStoreValue(token).then(() => {
                 setToken(token)
+                const referrer = urlParams.get("referrer") || "/"
                 console.log(token, "token")
+                nav(referrer)
               })
             }
           )
@@ -96,7 +93,7 @@ export function Login() {
       <Button
         variant="contained"
         onClick={() => {
-          nav("/management")
+          nav("/")
         }}>
         go
       </Button>
