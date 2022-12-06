@@ -33,7 +33,10 @@ export function Login() {
           setLoading(true)
           getAuthTokenInteractive().then(([token, err]) => {
             setLoading(false)
-            if (err) return
+            if (err) {
+              console.log(err, "auth error")
+              return
+            }
             googleSheetsManager.useOAuth2({
               getAuthToken,
               refreshAuthToken
