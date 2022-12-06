@@ -1,4 +1,5 @@
 import {
+  ButtonBase,
   IconButton,
   List,
   ListItem,
@@ -57,6 +58,8 @@ export function SheetsSelector() {
   return (
     <>
       <Stack
+        component={ButtonBase}
+        sx={{ cursor: "pointer" }}
         border={({ palette }) => {
           return `1px solid ${palette.divider}`
         }}
