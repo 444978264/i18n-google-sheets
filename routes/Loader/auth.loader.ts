@@ -9,5 +9,6 @@ export const AuthLoader: (referrer?: string) => RouteObject["loader"] =
       console.log(err, "error[auth]")
       throw redirect(`/login?referrer=${referrer}`)
     }
+    console.log(token, "token")
     return json({ token })
   }

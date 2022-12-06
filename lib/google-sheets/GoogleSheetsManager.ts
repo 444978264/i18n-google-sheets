@@ -33,7 +33,7 @@ export const axios = Axios.create({
   }
 })
 
-enum AUTH_MODES {
+export enum AUTH_MODES {
   API_KEY = "API_KEY",
   RAW_ACCESS_TOKEN = "RAW_ACCESS_TOKEN",
   OAUTH = "OAUTH"
@@ -60,7 +60,7 @@ export class GoogleSheetsManager extends Subject<
 > {
   static GOOGLE_SHEET_IDS = "GOOGLE_SHEET_IDS"
   static AUTH_MODE = "AUTH_MODE"
-
+  readonly MAX_RETRY = 3
   readonly sheets = this.pipe(
     filter((res) => res.type === "update"),
     shareReplay<GoogleSheetsManagerUpdate>({
@@ -108,7 +108,10 @@ export class GoogleSheetsManager extends Subject<
     this.storage
       .get<AUTH_MODES>(GoogleSheetsManager.AUTH_MODE)
       .then((AUTH_MODE) => {
-        this.authMode = AUTH_MODE
+        console.log(AUTH_MODE, "AUTH_MODE")
+        if (AUTH_MODE) {
+          this.authMode = AUTH_MODE
+        }
       })
 
     this.axios.interceptors.request.use(this._setAxiosRequestAuth.bind(this))
@@ -161,6 +164,7 @@ export class GoogleSheetsManager extends Subject<
   async _handleAxiosResponse(response) {
     return response
   }
+
   async _handleAxiosErrors(error) {
     // console.log(error);
     if (this.authMode === AUTH_MODES.OAUTH) {
@@ -168,7 +172,15 @@ export class GoogleSheetsManager extends Subject<
         const token = this._ejectAuthorization(
           error.response.config.headers.Authorization
         )
+
+        if (!error.response.config.retry) {
+          error.response.config.retry = 1
+        } else if (error.response.config.retry >= this.MAX_RETRY) {
+          return Promise.reject(error)
+        }
+
         return this.oAuth2.refreshAuthToken(token).then(([token, err]) => {
+          error.response.config.retry += 1
           return err
             ? Promise.reject(err)
             : this.axios.request(error.response.config)

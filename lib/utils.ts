@@ -1,4 +1,4 @@
-export function getProfileUserInfo(token: string) {
+export function getProfileUserInfo() {
   return new Promise<chrome.identity.UserInfo>((resolve) => {
     chrome.identity.getProfileUserInfo(resolve)
   })

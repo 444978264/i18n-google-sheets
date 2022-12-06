@@ -1,4 +1,5 @@
 import { Button } from "@mui/material"
+import { useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 
 import { useStorage } from "@plasmohq/storage/hook"
@@ -13,6 +14,7 @@ import {
 
 export function Login() {
   const [urlParams] = useSearchParams()
+  const [loading, setLoading] = useState(false)
   const [token, setToken, { setRenderValue, setStoreValue, remove }] =
     useStorage<string>("token")
   const nav = useNavigate()
@@ -25,9 +27,12 @@ export function Login() {
         padding: 16
       }}>
       <Button
+        disabled={loading}
         variant="contained"
         onClick={() => {
+          setLoading(true)
           getAuthTokenInteractive().then(([token, err]) => {
+            setLoading(false)
             if (err) return
             googleSheetsManager.useOAuth2({
               getAuthToken,
@@ -44,6 +49,7 @@ export function Login() {
         connect
       </Button>
       <Button
+        disabled={loading}
         variant="contained"
         onClick={() => {
           token && removeCachedAuthToken(token).then(remove)
@@ -52,6 +58,7 @@ export function Login() {
       </Button>
 
       <Button
+        disabled={loading}
         variant="contained"
         onClick={() => {
           nav("/")
