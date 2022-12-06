@@ -57,13 +57,20 @@ export function SheetsSelector() {
   return (
     <>
       <Stack
+        border={({ palette }) => {
+          return `1px solid ${palette.divider}`
+        }}
+        px={1}
+        py={0.8}
+        borderRadius={12}
+        height="48"
         direction="row"
         spacing={1}
         alignItems="center"
         onClick={handleClickListItem}>
         <WifiIcon color="inherit" fontSize="small" />
-        <span>hello world</span>
-        <DownArrowIcon />
+        <span>No Sheet Connected</span>
+        <DownArrowIcon fontSize="small" />
       </Stack>
       <Popover
         open={open}
