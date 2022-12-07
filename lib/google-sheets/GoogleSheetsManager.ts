@@ -95,8 +95,11 @@ export class GoogleSheetsManager extends Subject<
       .get<string[]>(GoogleSheetsManager.GOOGLE_SHEET_IDS)
       .then((ids = []) => {
         if (ids.length) {
-          ids.forEach((id) => {
-            this._createGoogleSpreadSheet(id)
+          this._sheetIds = new Set(ids)
+          this._sheetIds.forEach((id) => {
+            const doc = this._createGoogleSpreadSheet(id)
+            this._sheetsManager.set(id, doc)
+            doc.loadInfo()
           })
           this.next({
             type: "update",
@@ -126,10 +129,10 @@ export class GoogleSheetsManager extends Subject<
   }
 
   private _createGoogleSpreadSheet(id: string) {
+    if (this._sheetsManager.has(id)) {
+      return this._sheetsManager.get(id)
+    }
     const doc = new GoogleSpreadsheet(id, this.axios)
-    this._sheetIds.add(id)
-    this._sheetsManager.set(id, doc)
-
     return doc
   }
 
@@ -234,20 +237,24 @@ export class GoogleSheetsManager extends Subject<
     this.oAuth2 = oAuth2
   }
 
-  add(sheetId: string) {
+  add(sheetId: string): Promise<GoogleSpreadsheet | null> {
     if (this._sheetIds.has(sheetId)) {
       throw Error(`GoogleSpreadsheet(${sheetId}) already existed`)
     }
-
     const doc = this._createGoogleSpreadSheet(sheetId)
-    const ids = this.getSheetIds()
-    this.storage.set(GoogleSheetsManager.GOOGLE_SHEET_IDS, ids)
-    this.next({
-      type: "update",
-      value: ids
-    })
 
-    return doc
+    return doc.loadInfo().then((doc) => {
+      if (doc.invalid) return null
+      this._sheetIds.add(sheetId)
+      this._sheetsManager.set(sheetId, doc)
+      const ids = this.getSheetIds()
+      this.storage.set(GoogleSheetsManager.GOOGLE_SHEET_IDS, ids)
+      this.next({
+        type: "update",
+        value: ids
+      })
+      return doc
+    })
   }
 
   remove(sheetId: string) {

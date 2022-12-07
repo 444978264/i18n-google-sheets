@@ -57,6 +57,12 @@ export function SettingButton({ token }: { token: string }) {
         </MenuItem>
         <MenuItem>
           <ListItemIcon>
+            <SettingIcon fontSize="small" />
+          </ListItemIcon>
+          Setting
+        </MenuItem>
+        <MenuItem>
+          <ListItemIcon>
             <MoreIcon fontSize="small" />
           </ListItemIcon>
           More

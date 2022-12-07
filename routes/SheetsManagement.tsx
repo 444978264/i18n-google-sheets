@@ -1,6 +1,7 @@
 import { IconButton, List, ListItem, ListItemText } from "@mui/material"
 import { useEffect, useState } from "react"
 
+import { AddSheetButton } from "~components/AddSheetButton"
 import { DeleteIcon } from "~components/icons/DeleteIcon"
 import { WifiIcon } from "~components/icons/WifiIcon"
 import { googleSheetsManager } from "~lib/google-sheets"
@@ -62,6 +63,7 @@ export function SheetsManagement() {
           )
         })}
       </List>
+      <AddSheetButton />
     </>
   )
 }
