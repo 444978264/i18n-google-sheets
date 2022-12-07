@@ -49,7 +49,7 @@ export function SheetsManagement() {
     <>
       <SkeletonProvider loading={loading}>
         <TextSkeleton component="h1">
-          {sheetInfo.title}
+          <Box>{sheetInfo.title}</Box>
           <Chip
             icon={<CircleIcon fontSize="small" />}
             label={"未监测到页面"}
