@@ -1,10 +1,11 @@
-import { Box, Skeleton } from "@mui/material"
+import { Box, IconButton, Skeleton, Tooltip } from "@mui/material"
 import Grid2 from "@mui/material/Unstable_Grid2"
 import { useEffect, useMemo, useState } from "react"
 import { unstable_batchedUpdates } from "react-dom"
 
 import { AddSheetButton } from "~components/AddSheetButton"
 import { SkeletonProvider, TextSkeleton } from "~components/Skeleton"
+import { OpenNewIcon } from "~components/icons/OpenNewIcon"
 import {
   GoogleSpreadsheetWorksheet,
   googleSheetsManager
@@ -45,7 +46,19 @@ export function SheetsManagement() {
   return (
     <>
       <SkeletonProvider loading={loading}>
-        <TextSkeleton component="h1">{sheetInfo.title}</TextSkeleton>
+        <TextSkeleton component="h1">
+          {sheetInfo.title}
+          <Tooltip title="View source for this sheet">
+            <IconButton
+              sx={{ ml: 1 }}
+              size="large"
+              color="inherit"
+              target="_blank"
+              href={`https://docs.google.com/spreadsheets/d/${googleSheetsManager.workGoogleSpreadsSheet?.spreadsheetId}/edit`}>
+              <OpenNewIcon fontSize="inherit" color="inherit" />
+            </IconButton>
+          </Tooltip>
+        </TextSkeleton>
         {loading ? (
           <Skeleton variant="rectangular" height={300} />
         ) : (
