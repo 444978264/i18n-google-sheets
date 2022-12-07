@@ -70,7 +70,9 @@ export class GoogleSheetsManager extends Subject<
   static GOOGLE_SHEET_IDS = "GOOGLE_SHEET_IDS"
   static AUTH_MODE = "AUTH_MODE"
   readonly MAX_RETRY = 3
-  private _eventHandles: (() => () => void)[] = []
+  private _eventHandles: ((
+    s: GoogleSpreadsheet
+  ) => (s: GoogleSpreadsheet) => void)[] = []
   readonly sheets = this.pipe(
     filter((res) => res.type === "update"),
     map((d) => d.value),
@@ -143,11 +145,11 @@ export class GoogleSheetsManager extends Subject<
     combineLatest([this.workSheets, this.mode]).subscribe(([_workSheet]) => {
       console.log(_workSheet)
       const handles = this._eventHandles.map((fn) => {
-        return fn()
+        return fn(_workSheet)
       })
       _workSheet.loadInfo().finally(() => {
         handles.forEach((fn) => {
-          fn()
+          fn(_workSheet)
         })
       })
     })
@@ -163,7 +165,7 @@ export class GoogleSheetsManager extends Subject<
     return [...this._sheetIds]
   }
 
-  onLoad(fn) {
+  onLoad(fn: (s: GoogleSpreadsheet) => (s: GoogleSpreadsheet) => void) {
     this._eventHandles.push(fn)
 
     return () => {
