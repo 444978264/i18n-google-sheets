@@ -1,4 +1,5 @@
 import {
+  Box,
   ButtonBase,
   CircularProgress,
   IconButton,
@@ -9,7 +10,8 @@ import {
   ListItemText,
   Popover,
   Radio,
-  Stack
+  Stack,
+  Typography
 } from "@mui/material"
 import { useEffect, useState } from "react"
 import { Subscription } from "rxjs"
@@ -86,11 +88,11 @@ export function SheetsSelector() {
         ) : (
           <WifiIcon color={workSheet ? "success" : "action"} fontSize="small" />
         )}
-        <span>
+        <Typography noWrap variant="button">
           {workSheet
             ? encodeStr(workSheet.spreadsheetId)
             : "No Sheet Connected"}
-        </span>
+        </Typography>
         <DownArrowIcon fontSize="small" />
       </Stack>
       <Popover
