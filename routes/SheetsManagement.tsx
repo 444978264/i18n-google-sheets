@@ -1,4 +1,4 @@
-import { Box, IconButton, Skeleton, Tooltip } from "@mui/material"
+import { Box, Chip, IconButton, Skeleton, Tooltip } from "@mui/material"
 import Grid2 from "@mui/material/Unstable_Grid2"
 import { useEffect, useMemo, useState } from "react"
 import { unstable_batchedUpdates } from "react-dom"
@@ -6,6 +6,7 @@ import { unstable_batchedUpdates } from "react-dom"
 import { AddSheetButton } from "~components/AddSheetButton"
 import { DownloadButton } from "~components/DownloadButton"
 import { SkeletonProvider, TextSkeleton } from "~components/Skeleton"
+import { CircleIcon } from "~components/icons/CircleIcon"
 import { OpenNewIcon } from "~components/icons/OpenNewIcon"
 import {
   GoogleSpreadsheetWorksheet,
@@ -48,6 +49,12 @@ export function SheetsManagement() {
     <>
       <SkeletonProvider loading={loading}>
         <TextSkeleton component="h1">
+          <Chip
+            icon={<CircleIcon fontSize="small" />}
+            label={"未监测到页面"}
+            size="small"
+          />
+
           {sheetInfo.title}
           <Tooltip title="View source for this sheet">
             <IconButton
