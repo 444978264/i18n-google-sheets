@@ -49,17 +49,16 @@ export function SheetsManagement() {
     <>
       <SkeletonProvider loading={loading}>
         <TextSkeleton component="h1">
+          {sheetInfo.title}
           <Chip
             icon={<CircleIcon fontSize="small" />}
             label={"未监测到页面"}
             size="small"
           />
-
-          {sheetInfo.title}
           <Tooltip title="View source for this sheet">
             <IconButton
               sx={{ ml: 1 }}
-              size="large"
+              size="small"
               color="inherit"
               target="_blank"
               href={`https://docs.google.com/spreadsheets/d/${googleSheetsManager.workGoogleSpreadsSheet?.spreadsheetId}/edit`}>

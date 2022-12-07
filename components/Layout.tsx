@@ -40,18 +40,27 @@ function ElevationScroll(props: Props) {
   })
 }
 
+googleSheetsManager.useOAuth2({
+  getAuthToken,
+  refreshAuthToken
+})
+
 export default function Layout() {
   const { token } = useLoaderData() as { token: string }
 
   useLayoutEffect(() => {
-    googleSheetsManager.getAuthMode().then((mode) => {
-      if (mode === AUTH_MODES.OAUTH) {
-        googleSheetsManager.useOAuth2({
-          getAuthToken,
-          refreshAuthToken
-        })
-      }
+    googleSheetsManager.useOAuth2({
+      getAuthToken,
+      refreshAuthToken
     })
+    // googleSheetsManager.getAuthMode().then((mode) => {
+    //   if (mode === AUTH_MODES.OAUTH) {
+    //     googleSheetsManager.useOAuth2({
+    //       getAuthToken,
+    //       refreshAuthToken
+    //     })
+    //   }
+    // })
   }, [])
 
   return (
