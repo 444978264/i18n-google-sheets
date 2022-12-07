@@ -2,7 +2,6 @@ import {
   AppBar,
   Box,
   Container,
-  CssBaseline,
   Toolbar,
   Typography,
   useScrollTrigger
@@ -57,7 +56,6 @@ export default function Layout() {
 
   return (
     <>
-      <CssBaseline />
       <ElevationScroll>
         <AppBar color="default">
           <Toolbar sx={{ justifyContent: "space-between" }}>

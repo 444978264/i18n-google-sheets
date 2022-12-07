@@ -60,6 +60,9 @@ function AddFormPanel({ success }: { success?(): void }) {
         onClick={() => {
           setLoading(true)
           googleSheetsManager.add(formData.id).then(() => {
+            if (formData.default) {
+              googleSheetsManager.switchTo(formData.id)
+            }
             setLoading(false)
             success?.()
           })
