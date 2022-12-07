@@ -13,7 +13,7 @@ import { googleSheetsManager } from "~lib/google-sheets"
 
 import { AddIcon } from "./icons/AddIcon"
 
-function AddFormPanel() {
+function AddFormPanel({ success }: { success?(): void }) {
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     // 1a_jrIy5sw3UoxgJBdP4MLNTcUDHpgwoj0-9BJV1dk0M
@@ -61,6 +61,7 @@ function AddFormPanel() {
           setLoading(true)
           googleSheetsManager.add(formData.id).then(() => {
             setLoading(false)
+            success?.()
           })
         }}>
         Confirm
@@ -93,7 +94,11 @@ export function AddSheetButton() {
         <AddIcon />
       </Fab>
       <Drawer anchor="bottom" open={state} onClose={toggleDrawer}>
-        <AddFormPanel />
+        <AddFormPanel
+          success={() => {
+            setState(false)
+          }}
+        />
       </Drawer>
     </>
   )

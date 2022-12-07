@@ -1,5 +1,6 @@
 import {
   ButtonBase,
+  CircularProgress,
   IconButton,
   List,
   ListItem,
@@ -11,9 +12,11 @@ import {
   Stack
 } from "@mui/material"
 import { useEffect, useState } from "react"
+import { Subscription } from "rxjs"
 
 import { googleSheetsManager } from "~lib/google-sheets"
 
+import { useWorkSheets } from "./GoogleSheetsProvider"
 import { DeleteIcon } from "./icons/DeleteIcon"
 import { DownArrowIcon } from "./icons/DownArrowIcon"
 import { WifiIcon } from "./icons/WifiIcon"
@@ -23,32 +26,38 @@ function encodeStr(str: String) {
 }
 
 export function SheetsSelector() {
+  const workSheet = useWorkSheets()
+  const [loading, setLoading] = useState(false)
   const [sheetIds, setSheetIds] = useState(googleSheetsManager.getSheetIds())
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
-  const [selectedIndex, setSelectedIndex] = useState(1)
   const open = Boolean(anchorEl)
   const handleClickListItem = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget)
-  }
-
-  const handleMenuItemClick = (
-    event: React.MouseEvent<HTMLElement>,
-    index: number
-  ) => {
-    setSelectedIndex(index)
-    setAnchorEl(null)
   }
 
   const handleClose = () => {
     setAnchorEl(null)
   }
 
-  console.log(sheetIds, "sheetIds")
-
   useEffect(() => {
-    const sub = googleSheetsManager.sheets.subscribe(({ value }) => {
-      setSheetIds(value)
-    })
+    const sub = new Subscription()
+
+    sub.add(
+      googleSheetsManager.sheets.subscribe((value) => {
+        setSheetIds(value)
+      })
+    )
+
+    sub.add(
+      googleSheetsManager.onLoad(() => {
+        console.log("loading...", "workSheets")
+        setLoading(true)
+        return () => {
+          console.log("complete...", "workSheets")
+          setLoading(false)
+        }
+      })
+    )
 
     return () => {
       sub.unsubscribe()
@@ -58,6 +67,7 @@ export function SheetsSelector() {
   return (
     <>
       <Stack
+        disabled={!sheetIds.length}
         component={ButtonBase}
         sx={{ cursor: "pointer" }}
         border={({ palette }) => {
@@ -71,8 +81,16 @@ export function SheetsSelector() {
         spacing={1}
         alignItems="center"
         onClick={handleClickListItem}>
-        <WifiIcon color="inherit" fontSize="small" />
-        <span>No Sheet Connected</span>
+        {loading ? (
+          <CircularProgress size={20} />
+        ) : (
+          <WifiIcon color={workSheet ? "success" : "action"} fontSize="small" />
+        )}
+        <span>
+          {workSheet
+            ? encodeStr(workSheet.spreadsheetId)
+            : "No Sheet Connected"}
+        </span>
         <DownArrowIcon fontSize="small" />
       </Stack>
       <Popover
@@ -88,30 +106,38 @@ export function SheetsSelector() {
           horizontal: "center"
         }}>
         <List sx={{ width: "100%", maxWidth: 360 }}>
-          {sheetIds.map((option, index) => (
+          {sheetIds.map((id, index) => (
             <ListItem
-              key={option}
+              key={id}
               alignItems="flex-start"
               secondaryAction={
-                <IconButton edge="end" aria-label="comments">
+                <IconButton
+                  edge="end"
+                  aria-label="comments"
+                  onClick={() => {
+                    const isOk = confirm("Are you sure?")
+                    isOk && googleSheetsManager.remove(id)
+                  }}>
                   <DeleteIcon />
                 </IconButton>
               }
               disablePadding>
               <ListItemButton
-                selected={index === selectedIndex}
-                onClick={(event) => handleMenuItemClick(event, index)}>
+                onClick={() => {
+                  googleSheetsManager.switchTo(id)
+                  setAnchorEl(null)
+                }}>
                 <ListItemIcon>
                   <Radio
                     color="success"
                     edge="start"
-                    checked={index === selectedIndex}
+                    checked={workSheet?.spreadsheetId === id}
                     tabIndex={-1}
                   />
                 </ListItemIcon>
                 <ListItemText
                   primary={index}
-                  secondary={option}
+                  secondary={id}
                   secondaryTypographyProps={{ sx: { wordBreak: "break-all" } }}
                 />
               </ListItemButton>

@@ -1,6 +1,13 @@
 import Axios, { AxiosInstance, AxiosRequestConfig } from "axios"
 import _ from "lodash"
-import { Subject, filter, shareReplay } from "rxjs"
+import {
+  Subject,
+  combineLatest,
+  distinctUntilChanged,
+  filter,
+  map,
+  shareReplay
+} from "rxjs"
 
 import { Storage } from "@plasmohq/storage"
 
@@ -46,6 +53,8 @@ type GoogleSheetsManagerUpdate = {
 
 type GoogleSheetsManagerModify = { type: "switch"; value: GoogleSpreadsheet }
 
+type GoogleSheetsAuthMode = { type: "authMode"; value: AUTH_MODES }
+
 type IOAuth2 = {
   getAuthToken(
     details?: chrome.identity.TokenDetails
@@ -56,21 +65,35 @@ type IOAuth2 = {
 }
 
 export class GoogleSheetsManager extends Subject<
-  GoogleSheetsManagerUpdate | GoogleSheetsManagerModify
+  GoogleSheetsManagerUpdate | GoogleSheetsManagerModify | GoogleSheetsAuthMode
 > {
   static GOOGLE_SHEET_IDS = "GOOGLE_SHEET_IDS"
   static AUTH_MODE = "AUTH_MODE"
   readonly MAX_RETRY = 3
+  private _eventHandles: (() => () => void)[] = []
   readonly sheets = this.pipe(
     filter((res) => res.type === "update"),
-    shareReplay<GoogleSheetsManagerUpdate>({
+    map((d) => d.value),
+    distinctUntilChanged(),
+    shareReplay<GoogleSheetsManagerUpdate["value"]>({
       bufferSize: 1,
       refCount: true
     })
   )
   readonly workSheets = this.pipe(
     filter((res) => res.type === "switch"),
-    shareReplay<GoogleSheetsManagerModify>({
+    map((d) => d.value),
+    distinctUntilChanged(),
+    shareReplay<GoogleSheetsManagerModify["value"]>({
+      bufferSize: 1,
+      refCount: true
+    })
+  )
+  readonly mode = this.pipe(
+    filter((res) => res.type === "authMode"),
+    map((d) => d.value),
+    distinctUntilChanged(),
+    shareReplay<GoogleSheetsAuthMode["value"]>({
       bufferSize: 1,
       refCount: true
     })
@@ -99,7 +122,8 @@ export class GoogleSheetsManager extends Subject<
           this._sheetIds.forEach((id) => {
             const doc = this._createGoogleSpreadSheet(id)
             this._sheetsManager.set(id, doc)
-            doc.loadInfo()
+            // doc.loadInfo().then(console.log)
+            // console.log("load", doc)
           })
           this.next({
             type: "update",
@@ -111,11 +135,22 @@ export class GoogleSheetsManager extends Subject<
     this.storage
       .get<AUTH_MODES>(GoogleSheetsManager.AUTH_MODE)
       .then((AUTH_MODE) => {
-        console.log(AUTH_MODE, "AUTH_MODE")
         if (AUTH_MODE) {
           this.authMode = AUTH_MODE
         }
       })
+
+    combineLatest([this.workSheets, this.mode]).subscribe(([_workSheet]) => {
+      console.log(_workSheet)
+      const handles = this._eventHandles.map((fn) => {
+        return fn()
+      })
+      _workSheet.loadInfo().finally(() => {
+        handles.forEach((fn) => {
+          fn()
+        })
+      })
+    })
 
     this.axios.interceptors.request.use(this._setAxiosRequestAuth.bind(this))
     this.axios.interceptors.response.use(
@@ -126,6 +161,15 @@ export class GoogleSheetsManager extends Subject<
 
   getSheetIds() {
     return [...this._sheetIds]
+  }
+
+  onLoad(fn) {
+    this._eventHandles.push(fn)
+
+    return () => {
+      const idx = this._eventHandles.indexOf(fn)
+      idx > -1 && this._eventHandles.splice(idx, 1)
+    }
   }
 
   private _createGoogleSpreadSheet(id: string) {
@@ -224,17 +268,29 @@ export class GoogleSheetsManager extends Subject<
   async useApiKey(key) {
     this._setAuthMode(AUTH_MODES.API_KEY)
     this.apiKey = key
+    this.next({
+      type: "authMode",
+      value: AUTH_MODES.API_KEY
+    })
   }
 
   // token must be created and managed (refreshed) elsewhere
   async useRawAccessToken(token) {
     this._setAuthMode(AUTH_MODES.RAW_ACCESS_TOKEN)
     this.accessToken = token
+    this.next({
+      type: "authMode",
+      value: AUTH_MODES.RAW_ACCESS_TOKEN
+    })
   }
 
   async useOAuth2(oAuth2: IOAuth2) {
     this._setAuthMode(AUTH_MODES.OAUTH)
     this.oAuth2 = oAuth2
+    this.next({
+      type: "authMode",
+      value: AUTH_MODES.OAUTH
+    })
   }
 
   add(sheetId: string): Promise<GoogleSpreadsheet | null> {
@@ -247,8 +303,13 @@ export class GoogleSheetsManager extends Subject<
       if (doc.invalid) return null
       this._sheetIds.add(sheetId)
       this._sheetsManager.set(sheetId, doc)
+      if (this._sheetsManager.size === 1) {
+        this.switchTo(sheetId)
+      }
+
       const ids = this.getSheetIds()
       this.storage.set(GoogleSheetsManager.GOOGLE_SHEET_IDS, ids)
+      console.log(ids, "ids")
       this.next({
         type: "update",
         value: ids
