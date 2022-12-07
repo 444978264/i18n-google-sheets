@@ -9,7 +9,7 @@ export function getAuthToken(details?: chrome.identity.TokenDetails) {
   return new Promise<
     [string, undefined] | [undefined, chrome.runtime.LastError]
   >((resolve, reject) => {
-    chrome.identity.getAuthToken(details, async function (token) {
+    chrome.identity.getAuthToken(_details, async function (token) {
       if (chrome.runtime.lastError || !token) {
         resolve([undefined, chrome.runtime.lastError])
         return
