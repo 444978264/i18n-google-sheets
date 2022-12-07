@@ -345,6 +345,20 @@ export class GoogleSheetsManager extends Subject<
       throw Error(`there is no sheet for ${sheetId}`)
     }
   }
+
+  download(arrayBuffer: ArrayBuffer, filename: string) {
+    const eleLink = document.createElement("a")
+    eleLink.download = filename
+    eleLink.style.display = "none"
+    const blob = new Blob([arrayBuffer])
+    const url = URL.createObjectURL(blob)
+    eleLink.href = url
+    document.body.appendChild(eleLink)
+    eleLink.click()
+    document.body.removeChild(eleLink)
+    URL.revokeObjectURL(url)
+  }
+
   // todo download language json
   async downloadJson(sheet: GoogleSpreadsheetWorksheet) {
     if (sheet === undefined) {

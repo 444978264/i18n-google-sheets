@@ -3,7 +3,7 @@ import { SvgIcon, SvgIconProps } from "@mui/material"
 export function DownLoadIcon(props: SvgIconProps) {
   return (
     <SvgIcon {...props}>
-      <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"></path>
+      <path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"></path>
     </SvgIcon>
   )
 }
