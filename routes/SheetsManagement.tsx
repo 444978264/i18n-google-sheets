@@ -1,4 +1,11 @@
-import { Box, Chip, IconButton, Skeleton, Tooltip } from "@mui/material"
+import {
+  Box,
+  Chip,
+  Divider,
+  IconButton,
+  Skeleton,
+  Tooltip
+} from "@mui/material"
 import Grid2 from "@mui/material/Unstable_Grid2"
 import { useEffect, useMemo, useState } from "react"
 import { unstable_batchedUpdates } from "react-dom"
@@ -66,6 +73,7 @@ export function SheetsManagement() {
             </IconButton>
           </Tooltip>
         </TextSkeleton>
+        <Divider sx={{ mb: 3 }} />
         {loading ? (
           <Skeleton variant="rectangular" height={300} />
         ) : (
