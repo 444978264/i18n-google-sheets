@@ -12,6 +12,7 @@ import { unstable_batchedUpdates } from "react-dom"
 
 import { AddSheetButton } from "~components/AddSheetButton"
 import { DownloadButton } from "~components/DownloadButton"
+import { useWorkSheets } from "~components/GoogleSheetsProvider"
 import { SkeletonProvider, TextSkeleton } from "~components/Skeleton"
 import { CircleIcon } from "~components/icons/CircleIcon"
 import { OpenNewIcon } from "~components/icons/OpenNewIcon"
@@ -21,6 +22,7 @@ import {
 } from "~lib/google-sheets"
 
 export function SheetsManagement() {
+  const workSheet = useWorkSheets()
   const [loading, setLoading] = useState(true)
   const [sheetInfo, setSheetInfo] = useState<{
     title: string
@@ -68,7 +70,9 @@ export function SheetsManagement() {
               size="small"
               color="inherit"
               target="_blank"
-              href={`https://docs.google.com/spreadsheets/d/${googleSheetsManager.workGoogleSpreadsSheet?.spreadsheetId}/edit`}>
+              href={
+                workSheet ? workSheet._spreadsheetUrl : "javascript:void 0"
+              }>
               <OpenNewIcon fontSize="inherit" color="inherit" />
             </IconButton>
           </Tooltip>
